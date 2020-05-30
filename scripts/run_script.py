@@ -56,6 +56,8 @@ def build_agent(env):
     return agent
 
 def main(args):
+    d4rl.set_dataset_path('/datasets')
+
     global arg_parser
     arg_parser = parse_args(args)
     enable_gpus(arg_parser.gpu)
@@ -66,7 +68,6 @@ def main(args):
     agent.visualize = arg_parser.visualize
     if (arg_parser.model_file is not ""):
         agent.load_model(arg_parser.model_file)
-
 
     if (arg_parser.train):
         agent.train(max_iter=arg_parser.max_iter,

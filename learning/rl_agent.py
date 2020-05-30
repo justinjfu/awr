@@ -38,6 +38,7 @@ class RLAgent(abc.ABC):
         self._samples_per_iter = samples_per_iter
         self._normalizer_samples = normalizer_samples
         self._replay_buffer = self._build_replay_buffer(replay_buffer_size)
+
         
         self.visualize = visualize
         
@@ -55,6 +56,8 @@ class RLAgent(abc.ABC):
 
             self._init_vars()
             self._build_saver()
+
+        self._load_demo_data(self._env)
 
         return
 
@@ -107,11 +110,11 @@ class RLAgent(abc.ABC):
             total_train_return += train_path_count * train_return
             total_train_path_count += train_path_count
             avg_train_return = total_train_return / total_train_path_count
-            
+
             total_samples = self.get_total_samples()
             wall_time = time.time() - start_time
             wall_time /= 60 * 60 # store time in hours
-            
+
             self._logger.log_tabular("Iteration", iter)
             self._logger.log_tabular("Wall_Time", wall_time)
             self._logger.log_tabular("Samples", total_samples)
@@ -137,8 +140,8 @@ class RLAgent(abc.ABC):
                 self._logger.print_tabular()
                 self._logger.dump_tabular()
                 
-                total_train_return = 0
-                total_train_path_count = 0
+                #total_train_return = 0
+                #total_train_path_count = 0
             else:
                 self._logger.print_tabular()
 
@@ -275,10 +278,10 @@ class RLAgent(abc.ABC):
 
         while (new_sample_count < num_samples):
             path = self._rollout_path(test=False)
-            path_id = self._replay_buffer.store(path)
-            valid_path = path_id != replay_buffer.INVALID_IDX
+            #path_id = self._replay_buffer.store(path)
+            #valid_path = path_id != replay_buffer.INVALID_IDX
 
-            if valid_path:
+            if True: #valid_path:
                 path_return = path.calc_return()
 
                 if (self._enable_normalizer_update()):
@@ -455,3 +458,61 @@ class RLAgent(abc.ABC):
         loss = a_pd_tf.entropy()
         loss = -tf.reduce_mean(loss)
         return loss
+
+    def _load_demo_data(self, env):
+        episode_max_len = env._max_episode_steps
+        max_samples = None
+        demo_data = env.get_dataset()
+        N = demo_data['rewards'].shape[0]
+        print('loading from buffer. %d items loaded' % N)
+        demo_obs = demo_data["observations"][:N-1]
+        demo_next_obs = demo_data["observations"][1:]
+        #demo_next_obs = demo_data["next_observations"]
+        demo_actions = demo_data["actions"][:N-1]
+        demo_rewards = demo_data["rewards"][:N-1]
+        demo_term = demo_data["terminals"][:N-1]
+
+        path = rl_path.RLPath()
+        n = demo_obs.shape[0]
+        total_return = 0.0
+        num_paths = 0
+        for i in range(n):
+            curr_s = demo_obs[i]
+            curr_a = demo_actions[i]
+            curr_r = demo_rewards[i]
+            curr_term = demo_term[i]
+            #curr_g = np.array([])
+            curr_logp = 0.0
+            #curr_flags = self.EXP_ACTION_FLAG
+            path.states.append(curr_s)
+            #path.goals.append(curr_g)
+            path.actions.append(curr_a)
+            path.logps.append(curr_logp)
+            path.rewards.append(curr_r)
+            #path.flags.append(curr_flags)
+            path_len = path.pathlength()
+            done = (curr_term == 1) or (path_len == episode_max_len)
+            if (done):
+                next_s = demo_next_obs[i]
+                #next_g = curr_g
+                path.states.append(next_s)
+                #path.goals.append(next_g)
+                if (curr_term == 1):
+                    path.terminate = rl_path.Terminate.Fail
+                else:
+                    path.terminate = rl_path.Terminate.Null
+                self._replay_buffer.store(path)
+                self._record_normalizers(path)
+                curr_return = path.calc_return()
+                total_return += curr_return
+                num_paths += 1
+                print("Loaded {:d}/{:d} samples".format(i, n))
+                path.clear()
+                if ((max_samples is not None) and (i >= max_samples)):
+                    break;
+        self._update_normalizers()
+        self._replay_buffer_initialized = True
+        avg_return = total_return / num_paths
+        print("Loaded {:d} samples, {:d} paths".format(i, num_paths))
+        print("Avg demo return: {:.5f}".format(avg_return))
+        return
