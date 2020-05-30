@@ -152,5 +152,6 @@ class Logger:
 
     def _build_str_template(self):
         num_keys = self.get_num_keys()
-        template = "{:<25}" * num_keys
-        return template
+        #template = "{:<25}" * num_keys
+        template = "{:}," * num_keys
+        return template[:-1]

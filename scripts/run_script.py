@@ -1,6 +1,8 @@
 import argparse
 import gym
+import uuid
 import numpy as np
+import json
 import os
 import sys
 import tensorflow as tf
@@ -21,6 +23,7 @@ def parse_args(args):
     parser.add_argument("--test", dest="train", action="store_false", default=True)
 
     parser.add_argument("--max_iter", dest="max_iter", type=int, default=np.inf)
+    parser.add_argument("--seed", type=int, default=0)
     parser.add_argument("--test_episodes", dest="test_episodes", type=int, default=32)
     parser.add_argument("--output_dir", dest="output_dir", default="output")
     parser.add_argument("--output_iters", dest="output_iters", type=int, default=50)
@@ -62,6 +65,15 @@ def main(args):
     arg_parser = parse_args(args)
     enable_gpus(arg_parser.gpu)
 
+    # Setup logging
+    final_output_dir = os.path.join(arg_parser.output_dir, str(uuid.uuid4()))
+    os.makedirs(final_output_dir, exist_ok=True)
+    with open(os.path.join(final_output_dir, 'params.json'), 'w') as params_file:
+        json.dump({
+            'env_name': arg_parser.env,
+            'seed': arg_parser.seed,
+        }, params_file)
+
     env = build_env(arg_parser.env)
 
     agent = build_agent(env)
@@ -69,10 +81,11 @@ def main(args):
     if (arg_parser.model_file is not ""):
         agent.load_model(arg_parser.model_file)
 
+
     if (arg_parser.train):
         agent.train(max_iter=arg_parser.max_iter,
                     test_episodes=arg_parser.test_episodes,
-                    output_dir=arg_parser.output_dir,
+                    output_dir=final_output_dir,
                     output_iters=arg_parser.output_iters)
     else:
         agent.eval(num_episodes=arg_parser.test_episodes)
