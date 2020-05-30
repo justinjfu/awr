@@ -2,7 +2,7 @@
 # on hosts with GPUs.
 # The image below is a pinned version of nvidia/cuda:9.1-cudnn7-devel-ubuntu16.04 (from Jan 2018)
 # If updating the base image, be sure to test on GPU since it has broken in the past.
-FROM justinfu/rlkit:0.3
+FROM justinfu/awr:0.1
 
 RUN apt-get update
 RUN apt-get install -y cmake swig libgtest-dev python-pygame python-scipy

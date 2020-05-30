@@ -5,7 +5,7 @@ from d4rl import infos
 import gym
 
 #env_name = 'maze2d-eval-umaze-v1'
-env_name = 'kitchen-complete-v0'
+env_name = 'flow-ring-random-v0'
 _, dataset = os.path.split(infos.DATASET_URLS[env_name])
 dirname, _ = os.path.splitext(dataset)
 
@@ -32,10 +32,10 @@ local_launcher = doodad.LocalMode()
 
 
 doodad.run_python(
-    target='scripts/run_script.py',
+    target='scripts/run_flow.py',
     mode=local_launcher,
     mounts=mounts,
-    docker_image='justinfu/awr:0.1',
+    docker_image='justinfu/awr_flow:0.1',
     verbose=True,
     cli_args='--output_dir=/data --env=' + env_name
 )

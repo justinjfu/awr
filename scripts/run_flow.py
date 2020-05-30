@@ -8,7 +8,7 @@ import sys
 import tensorflow as tf
 
 import d4rl
-import d4rl.kitchen
+import d4rl.flow
 
 import awr_configs
 import learning.awr_agent as awr_agent
